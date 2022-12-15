@@ -3,6 +3,16 @@ Math.snap = function(num) {
     return (num < 0 ? Math.floor(num) : Math.ceil(num));
 }
 
+Math.linspace = function(a, b, incr = 1) {
+    if (a === b)
+        return [a];
+    if (b < a)
+        return Math.linspace(b, a, incr).reverse();
+    return new Array(Math.ceil((b - a + 1)/incr))
+        .fill((i) => (a + i*incr));
+}
+
+
 // -----------------------------------------------------------
 // ------------------ N-Dimensional methods ------------------
 // -----------------------------------------------------------
