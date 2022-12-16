@@ -6,6 +6,13 @@ const readings = fs
     .split("\n")
     .map((line) => line.parseNumbers());
 
+// const test = fs.readFileSync("./test.txt", { encoding: "utf8" })
+//     .split("\n")
+//     .map((line) => line.parseNumbers());
+
+// console.log(`[${test.map(([a,b]) => `(${a},${b})`).join(",")}]`);
+// console.log(`[${test.map(([_,__,a,b]) => `(${a},${b})`).join(",")}]`);
+
 const targetY = 2000000;
 
 const result = readings

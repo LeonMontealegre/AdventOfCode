@@ -230,11 +230,29 @@ class Graph {
         this.reverseConnections = new Map();
     }
 
-    bfsSearch(start, stop) {
+    bfsSearch2(start, stop) {
         const visited = new Set();
-        const queue = [{ node: start, layer: 0, parent: undefined }];
-        const paths = new Map();
+        const queue = [{ node: start, layer: 0 }];
         let stopNode = undefined;
+
+        while (queue.length > 0) {
+            const { node, layer } = queue.shift(); // De-queue
+            if (visited.has(node)) // Already visited
+                continue;
+            visited.add(node);
+
+            // Check if found
+            if ((node === stop))
+                return layer;
+
+            // Loop through neighbors and add to queue
+            for (const n of this.getConnections(node))
+                queue.push({ node: n, layer: layer+1 });
+        }
+
+        return undefined;
+    }
+    bfsSearch(start, stop) {
 
         while (queue.length > 0) {
             const { node, layer, parent } = queue.shift(); // De-queue
@@ -265,6 +283,27 @@ class Graph {
         while (path[0] !== start)
             path.unshift(paths.get(path[0]));
         return path;
+    }
+    bfsDists(start) {
+        const visited = new Set();
+        const queue = [{ node: start, layer: 0, parent: undefined }];
+        const dists = new Map();
+
+        while (queue.length > 0) {
+            const { node, layer } = queue.shift(); // De-queue
+            if (visited.has(node)) // Already visited
+                continue;
+            visited.add(node);
+
+            dists.set(node, layer);
+
+            // Loop through neighbors and add to queue
+            for (const n of this.getConnections(node)) {
+                if (!visited.has(n))
+                    queue.push({ node: n, layer: layer+1, parent: node });
+            }
+        }
+        return dists;
     }
 
     add(key, val) {
@@ -300,6 +339,8 @@ class Graph {
         return r;
     }
 }
+
+Array.Graph = Graph;
 
 class TupleSet {
     constructor() {
