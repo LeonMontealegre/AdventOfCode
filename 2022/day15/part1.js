@@ -8,7 +8,7 @@ const readings = fs
 
 const targetY = 2000000;
 
-const searchedPositions = readings
+const result = readings
     // Map raw readings to calculate values
     .map(([x0, y0, x1, y1]) => [
         x0,
@@ -19,12 +19,24 @@ const searchedPositions = readings
     ])
     // If horizontal distance < 0, then the sensor area doesn't include targetY, so skip
     .filter(([_, dx]) => (dx >= 0))
-    // Return each point between the horizontal boundaries
-    //  of the sensor area at y = targetY
-    .flatMap(([x0, dx]) => Math.linspace(x0 - dx, x0 + dx))
-    // Just get unique points
-    .unique();
+    // Calculate interval of points
+    .map(([x0, dx]) => [x0 - dx, x0 + dx])
+    // Sort each interval by their starting point
+    .sort(([a0, _], [b0, __]) => (a0 - b0))
+    // Union all intervals that overlap
+    .reduceInArray((total, [x0, x1]) => ([
+        ...total.slice(0, -1), // Keep previous intervals and edit last one
+        ...((([p0, p1]) => (
+            (x0 <= p1)
+            ? ([[p0, Math.max(p1, x1)]]) // Combine into single interval
+            : ([[p0, p1], [x0, x1]])     // Add as separate interval
+        ))(total.last())),
+    ]))
+    // Map each interval to the length of the interval
+    .map(([x0, x1]) => (x1 - x0))
+    // Sum each interval
+    .sum();
 
-console.log(searchedPositions.length - 1);
+console.log(result);
 
 // Answer is 5838453
