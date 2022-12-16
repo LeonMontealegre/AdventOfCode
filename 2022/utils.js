@@ -513,6 +513,9 @@ Array.prototype.popFirst = function() {
     return this.splice(0, 1)[0];
 }
 
+Array.prototype.reduceInArray = function(func) {
+    return this.slice(1).reduce(func, [this[0]]);
+}
 
 Array.prototype.mapExceptLast = function(func) {
     return this.map((val, index, arr) => {
