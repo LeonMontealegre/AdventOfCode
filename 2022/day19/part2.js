@@ -123,7 +123,8 @@ function sim0(costs) {
             }
         }
 
-        // don't buy robot option
+        // don't buy robot option (only do when we have less than 4 ores, otherwise it's pointless and we should
+        //  always buy when we have more then that)
         if (counts[ORE] < 4) {
             let [result, bots] = sim(t-1, [...curRobots], counts2);
             if (result[GEODE] >= bestCounts[GEODE]) {
