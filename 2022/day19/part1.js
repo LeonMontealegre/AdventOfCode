@@ -1,7 +1,7 @@
 require("../utils");
 const fs = require("fs");
 
-const file = fs.readFileSync("./test.txt", { encoding: "utf8" });
+const file = fs.readFileSync("./input.txt", { encoding: "utf8" });
 
 const blueprints = file.split("\n")
     .map((line) => {
@@ -20,131 +20,93 @@ const ORE = 0, CLAY = 1, OBSIDIAN = 2, GEODE = 3;
 
 const TIME = 24;
 
-function canAfford(cost, counts) {
-    for (let i = 0; i < cost.length; i++) {
-        const amt = cost[i];
-        if (counts[i] < amt)
-            return false;
-    }
-    return true;
-}
-
-function getBuyOptions(costs, counts) {
-    let options = [];
-    for (let i = 0; i < costs.length; i++) {
-        const cost = costs[i];
-        if (canAfford(cost, counts))
-            options.push(i);
-    }
-    return options;
-}
-
 function sim0(costs) {
     const map = new Map();
 
-    function sim(t, curRobots, counts) {
-        const key = `${t}|${curRobots.join(",")}|${counts.join(",")}`;
+    function canAfford(cost, curCounts) {
+        for (let i = 0; i < cost.length; i++) {
+            const amt = cost[i];
+            if (curCounts[i] < amt)
+                return false;
+        }
+        return true;
+    }
+
+    function getBuyOptions(curCounts) {
+        let options = [];
+        for (let i = 0; i < costs.length; i++) {
+            const cost = costs[i];
+            if (canAfford(cost, curCounts))
+                options.push(i);
+        }
+        return options;
+    }
+
+    function buy(curRobots, curCounts, toBuy) {
+        // Don't buy anything
+        if (toBuy === undefined)
+            return [curRobots, curCounts];
+
+        let nextRobots = [...curRobots];
+        nextRobots[toBuy]++;
+
+        let nextCounts = [...curCounts];
+
+        const cost = costs[toBuy];
+        for (let i = 0; i < cost.length; i++) {
+            const amt = cost[i];
+            nextCounts[i] -= amt;
+        }
+
+        return [nextRobots, nextCounts];
+    }
+
+    function sim(t, curRobots, curCounts) {
+        // Return current counts
+        if (t === 0)
+            return curCounts;
+
+        const key = `${t}|${curRobots.join(",")}|${curCounts.join(",")}`;
         if (map.has(key))
             return map.get(key);
 
-        if (t === 0)
-            return counts;
+        // Collect resources
+        const nextCounts = curCounts.map((count, i) => (count + curRobots[i]));
 
-        // decide which robot to buy
-        const options = getBuyOptions(costs, counts);
-        let bestCounts = counts;
+        // Calculate best result
+        const result = (() => {
+            //  Buyable options and option for not buying anything
+            const options = [...getBuyOptions(curCounts), undefined];
 
-        // console.log(t, curRobots, counts);
+            // If we can buy GEODE robot, always do it
+            if (options.includes(GEODE))
+                return sim(t-1, ...buy(curRobots, nextCounts, GEODE));
 
-        // collect resources
-        let counts2 = [...counts];
-        for (let i = 0; i < curRobots.length; i++)
-            counts2[i] += curRobots[i];
+            // If we can buy OBSIDIAN robot, always do it
+            if (options.includes(OBSIDIAN))
+                return sim(t-1, ...buy(curRobots, nextCounts, OBSIDIAN));
 
+            // Otherwise return best results
+            return options
+                .map((option) => sim(t-1, ...buy(curRobots, nextCounts, option)))
+                .reduce((max, next) => (next[GEODE] >= max[GEODE] ? next : max));
+        })();
 
-        // if we can buy GEODE robot, always do it
-        if (options.includes(GEODE)) {
-            let nextRobots = [...curRobots];
-            nextRobots[GEODE]++;
-
-            let counts3 = [...counts2];
-
-            const cost = costs[GEODE];
-            for (let i = 0; i < cost.length; i++) {
-                const amt = cost[i];
-                counts3[i] -= amt;
-            }
-
-            let result = sim(t-1, nextRobots, counts3);
-            map.set(key, result);
-            return result;
-        }
-
-        // if we can buy OBSIDIAN robot, always do it
-        if (options.includes(OBSIDIAN)) {
-            let nextRobots = [...curRobots];
-            nextRobots[OBSIDIAN]++;
-
-            let counts3 = [...counts2];
-
-            const cost = costs[OBSIDIAN];
-            for (let i = 0; i < cost.length; i++) {
-                const amt = cost[i];
-                counts3[i] -= amt;
-            }
-
-            let result = sim(t-1, nextRobots, counts3);
-            map.set(key, result);
-            return result;
-        }
-
-
-        // buy robot
-        for (const option of options) {
-            let nextRobots = [...curRobots];
-            nextRobots[option]++;
-
-            let counts3 = [...counts2];
-
-            const cost = costs[option];
-            for (let i = 0; i < cost.length; i++) {
-                const amt = cost[i];
-                counts3[i] -= amt;
-            }
-
-            let result = sim(t-1, nextRobots, counts3);
-            // console.log(result);
-            if (result[GEODE] >= bestCounts[GEODE]) {
-                bestCounts = result;
-            }
-        }
-
-        // don't buy robot option
-        {
-            let result = sim(t-1, [...curRobots], counts2);
-            if (result[GEODE] >= bestCounts[GEODE]) {
-                bestCounts = result;
-            }
-        }
-
-        map.set(key, bestCounts);
-        return bestCounts;
+        map.set(key, result);
+        return result;
     }
 
-    return sim(24, [1,0,0,0], [0,0,0,0]);
+    return sim(TIME, [1,0,0,0], [0,0,0,0]);
 }
 
-// console.log(sim(24, blueprints[1], [1,0,0,0], [0,0,0,0]));
-
 let geodeQualityTotal = 0;
-
-
 for (let i = 0; i < blueprints.length; i++) {
     const result = sim0(blueprints[i]);
-    const amt = result[GEODE];
-    const level = amt * (i+1);
+    const level = result[GEODE] * (i+1);
     geodeQualityTotal += level;
     console.log("blueprint",i,"quality",level);
 }
 
 console.log(geodeQualityTotal);
+
+// Answer is 1725
